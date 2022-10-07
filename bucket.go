@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"unsafe"
+
+	"github.com/valyala/gozstd"
 )
 
 const (
@@ -275,6 +277,7 @@ func (b *Bucket) Get(key []byte) []byte {
 	if !bytes.Equal(key, k) {
 		return nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return v
 }
 
@@ -306,6 +309,7 @@ func (b *Bucket) Put(key []byte, value []byte) error {
 
 	// Insert into node.
 	key = cloneBytes(key)
+	value = gozstd.Compress(nil, value)
 	c.node().put(key, key, value, 0, 0)
 
 	return nil

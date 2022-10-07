@@ -123,7 +123,13 @@ func (n *leafPageElement) key() []byte {
 // value returns a byte slice of the node value.
 func (n *leafPageElement) value() []byte {
 	buf := (*[maxAllocSize]byte)(unsafe.Pointer(n))
-	return (*[maxAllocSize]byte)(unsafe.Pointer(&buf[n.pos+n.ksize]))[:n.vsize:n.vsize]
+	src := (*[maxAllocSize]byte)(unsafe.Pointer(&buf[n.pos+n.ksize]))[:n.vsize:n.vsize]
+	// rs, err := gozstd.Decompress(nil, src)
+	// if err != nil {
+	// 	rs = src
+	// }
+	// return rs
+	return src
 }
 
 // PageInfo represents human readable information about a page.

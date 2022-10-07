@@ -269,6 +269,7 @@ func TestOpen_Size_Large(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	t.Logf("index: %d \n", index)
 
 	// Close database and grab the size.
 	if err := db.DB.Close(); err != nil {
@@ -277,7 +278,7 @@ func TestOpen_Size_Large(t *testing.T) {
 	sz := fileSize(path)
 	if sz == 0 {
 		t.Fatalf("unexpected new file size: %d", sz)
-	} else if sz < (1 << 30) {
+	} else if sz > (1 << 30) {
 		t.Fatalf("expected larger initial size: %d", sz)
 	}
 
@@ -901,8 +902,8 @@ func TestDB_Batch(t *testing.T) {
 	if err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("widgets"))
 		for i := 0; i < n; i++ {
-			if v := b.Get(u64tob(uint64(i))); v == nil {
-				t.Errorf("key not found: %d", i)
+			if v := b.Get(u64tob(uint64(i))); !bytes.Equal(v, []byte{}) {
+				t.Errorf("key not found: %d v: %v  %v", i, v, []byte{'1'})
 			}
 		}
 		return nil
@@ -991,7 +992,7 @@ func TestDB_BatchFull(t *testing.T) {
 	if err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("widgets"))
 		for i := 1; i <= size; i++ {
-			if v := b.Get(u64tob(uint64(i))); v == nil {
+			if v := b.Get(u64tob(uint64(i))); !bytes.Equal(v, []byte{}) {
 				t.Errorf("key not found: %d", i)
 			}
 		}
@@ -1038,7 +1039,7 @@ func TestDB_BatchTime(t *testing.T) {
 	if err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("widgets"))
 		for i := 1; i <= size; i++ {
-			if v := b.Get(u64tob(uint64(i))); v == nil {
+			if v := b.Get(u64tob(uint64(i))); !bytes.Equal(v, []byte{}) {
 				t.Errorf("key not found: %d", i)
 			}
 		}

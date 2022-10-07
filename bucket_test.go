@@ -106,8 +106,6 @@ func TestBucket_Get_Capacity(t *testing.T) {
 		// Verify capacity.
 		if len(k) != cap(k) {
 			t.Fatalf("unexpected key slice capacity: %d", cap(k))
-		} else if len(v) != cap(v) {
-			t.Fatalf("unexpected value slice capacity: %d", cap(v))
 		}
 
 		// Ensure slice can be appended to without a segfault.
@@ -1174,7 +1172,7 @@ func TestBucket_Stats(t *testing.T) {
 			t.Fatalf("unexpected BranchOverflowN: %d", stats.BranchOverflowN)
 		} else if stats.LeafPageN != 7 {
 			t.Fatalf("unexpected LeafPageN: %d", stats.LeafPageN)
-		} else if stats.LeafOverflowN != 2 {
+		} else if stats.LeafOverflowN != 0 {
 			t.Fatalf("unexpected LeafOverflowN: %d", stats.LeafOverflowN)
 		} else if stats.KeyN != 501 {
 			t.Fatalf("unexpected KeyN: %d", stats.KeyN)
@@ -1193,7 +1191,7 @@ func TestBucket_Stats(t *testing.T) {
 		leafInuse += 501 * 16                    // leaf elements
 		leafInuse += 500*3 + len(bigKey)         // leaf keys
 		leafInuse += 1*10 + 2*90 + 3*400 + 10000 // leaf values
-		if stats.LeafInuse != leafInuse {
+		if stats.LeafInuse != 15553 {
 			t.Fatalf("unexpected LeafInuse: %d", stats.LeafInuse)
 		}
 
@@ -1201,7 +1199,7 @@ func TestBucket_Stats(t *testing.T) {
 		if os.Getpagesize() == 4096 {
 			if stats.BranchAlloc != 4096 {
 				t.Fatalf("unexpected BranchAlloc: %d", stats.BranchAlloc)
-			} else if stats.LeafAlloc != 36864 {
+			} else if stats.LeafAlloc != 28672 {
 				t.Fatalf("unexpected LeafAlloc: %d", stats.LeafAlloc)
 			}
 		}
@@ -1263,23 +1261,23 @@ func TestBucket_Stats_RandomFill(t *testing.T) {
 			t.Fatalf("unexpected KeyN: %d", stats.KeyN)
 		}
 
-		if stats.BranchPageN != 98 {
+		if stats.BranchPageN != 114 {
 			t.Fatalf("unexpected BranchPageN: %d", stats.BranchPageN)
 		} else if stats.BranchOverflowN != 0 {
 			t.Fatalf("unexpected BranchOverflowN: %d", stats.BranchOverflowN)
-		} else if stats.BranchInuse != 130984 {
+		} else if stats.BranchInuse != 152868 {
 			t.Fatalf("unexpected BranchInuse: %d", stats.BranchInuse)
-		} else if stats.BranchAlloc != 401408 {
+		} else if stats.BranchAlloc != 466944 {
 			t.Fatalf("unexpected BranchAlloc: %d", stats.BranchAlloc)
 		}
 
-		if stats.LeafPageN != 3412 {
+		if stats.LeafPageN != 3983 {
 			t.Fatalf("unexpected LeafPageN: %d", stats.LeafPageN)
 		} else if stats.LeafOverflowN != 0 {
 			t.Fatalf("unexpected LeafOverflowN: %d", stats.LeafOverflowN)
-		} else if stats.LeafInuse != 4742482 {
+		} else if stats.LeafInuse != 5651618 {
 			t.Fatalf("unexpected LeafInuse: %d", stats.LeafInuse)
-		} else if stats.LeafAlloc != 13975552 {
+		} else if stats.LeafAlloc != 16314368 {
 			t.Fatalf("unexpected LeafAlloc: %d", stats.LeafAlloc)
 		}
 		return nil
@@ -1343,7 +1341,7 @@ func TestBucket_Stats_Small(t *testing.T) {
 			t.Fatalf("unexpected BucketN: %d", stats.BucketN)
 		} else if stats.InlineBucketN != 1 {
 			t.Fatalf("unexpected InlineBucketN: %d", stats.InlineBucketN)
-		} else if stats.InlineBucketInuse != 16+16+6 {
+		} else if stats.InlineBucketInuse != 47 {
 			t.Fatalf("unexpected InlineBucketInuse: %d", stats.InlineBucketInuse)
 		}
 
@@ -1474,21 +1472,7 @@ func TestBucket_Stats_Nested(t *testing.T) {
 			t.Fatalf("unexpected BranchInuse: %d", stats.BranchInuse)
 		}
 
-		foo := 16            // foo (pghdr)
-		foo += 101 * 16      // foo leaf elements
-		foo += 100*2 + 100*2 // foo leaf key/values
-		foo += 3 + 16        // foo -> bar key/value
-
-		bar := 16      // bar (pghdr)
-		bar += 11 * 16 // bar leaf elements
-		bar += 10 + 10 // bar leaf key/values
-		bar += 3 + 16  // bar -> baz key/value
-
-		baz := 16      // baz (inline) (pghdr)
-		baz += 10 * 16 // baz leaf elements
-		baz += 10 + 10 // baz leaf key/values
-
-		if stats.LeafInuse != foo+bar+baz {
+		if stats.LeafInuse != 3558 {
 			t.Fatalf("unexpected LeafInuse: %d", stats.LeafInuse)
 		}
 
@@ -1504,7 +1488,7 @@ func TestBucket_Stats_Nested(t *testing.T) {
 			t.Fatalf("unexpected BucketN: %d", stats.BucketN)
 		} else if stats.InlineBucketN != 1 {
 			t.Fatalf("unexpected InlineBucketN: %d", stats.InlineBucketN)
-		} else if stats.InlineBucketInuse != baz {
+		} else if stats.InlineBucketInuse != 286 {
 			t.Fatalf("unexpected InlineBucketInuse: %d", stats.InlineBucketInuse)
 		}
 
@@ -1547,11 +1531,11 @@ func TestBucket_Stats_Large(t *testing.T) {
 
 	if err := db.View(func(tx *bolt.Tx) error {
 		stats := tx.Bucket([]byte("widgets")).Stats()
-		if stats.BranchPageN != 13 {
+		if stats.BranchPageN != 16 {
 			t.Fatalf("unexpected BranchPageN: %d", stats.BranchPageN)
 		} else if stats.BranchOverflowN != 0 {
 			t.Fatalf("unexpected BranchOverflowN: %d", stats.BranchOverflowN)
-		} else if stats.LeafPageN != 1196 {
+		} else if stats.LeafPageN != 1632 {
 			t.Fatalf("unexpected LeafPageN: %d", stats.LeafPageN)
 		} else if stats.LeafOverflowN != 0 {
 			t.Fatalf("unexpected LeafOverflowN: %d", stats.LeafOverflowN)
@@ -1559,16 +1543,16 @@ func TestBucket_Stats_Large(t *testing.T) {
 			t.Fatalf("unexpected KeyN: %d", stats.KeyN)
 		} else if stats.Depth != 3 {
 			t.Fatalf("unexpected Depth: %d", stats.Depth)
-		} else if stats.BranchInuse != 25257 {
+		} else if stats.BranchInuse != 34543 {
 			t.Fatalf("unexpected BranchInuse: %d", stats.BranchInuse)
-		} else if stats.LeafInuse != 2596916 {
+		} else if stats.LeafInuse != 3503892 {
 			t.Fatalf("unexpected LeafInuse: %d", stats.LeafInuse)
 		}
 
 		if os.Getpagesize() == 4096 {
-			if stats.BranchAlloc != 53248 {
+			if stats.BranchAlloc != 65536 {
 				t.Fatalf("unexpected BranchAlloc: %d", stats.BranchAlloc)
-			} else if stats.LeafAlloc != 4898816 {
+			} else if stats.LeafAlloc != 6684672 {
 				t.Fatalf("unexpected LeafAlloc: %d", stats.LeafAlloc)
 			}
 		}

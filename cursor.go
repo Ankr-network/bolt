@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+
+	"github.com/valyala/gozstd"
 )
 
 // Cursor represents an iterator that can traverse over all key/value pairs in a bucket in sorted order.
@@ -45,6 +47,7 @@ func (c *Cursor) First() (key []byte, value []byte) {
 	if (flags & uint32(bucketLeafFlag)) != 0 {
 		return k, nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return k, v
 
 }
@@ -64,6 +67,7 @@ func (c *Cursor) Last() (key []byte, value []byte) {
 	if (flags & uint32(bucketLeafFlag)) != 0 {
 		return k, nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return k, v
 }
 
@@ -76,6 +80,7 @@ func (c *Cursor) Next() (key []byte, value []byte) {
 	if (flags & uint32(bucketLeafFlag)) != 0 {
 		return k, nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return k, v
 }
 
@@ -107,6 +112,7 @@ func (c *Cursor) Prev() (key []byte, value []byte) {
 	if (flags & uint32(bucketLeafFlag)) != 0 {
 		return k, nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return k, v
 }
 
@@ -127,6 +133,7 @@ func (c *Cursor) Seek(seek []byte) (key []byte, value []byte) {
 	} else if (flags & uint32(bucketLeafFlag)) != 0 {
 		return k, nil
 	}
+	v, _ = gozstd.Decompress(nil, v)
 	return k, v
 }
 
